@@ -5,10 +5,17 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Interaction/EnemyInterface.h"
 
 AAuraPlayerController::AAuraPlayerController()
 {
 	bReplicates = true;
+}
+
+void AAuraPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+	CursorTrace();
 }
 
 void AAuraPlayerController::BeginPlay()
@@ -19,7 +26,8 @@ void AAuraPlayerController::BeginPlay()
 	check(AuraContext);
 
 	// We need to get the local player's InputSubsystem
-	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(
+		GetLocalPlayer());
 	check(Subsystem);
 	Subsystem->AddMappingContext(AuraContext, 1);
 
@@ -41,7 +49,6 @@ void AAuraPlayerController::SetupInputComponent()
 
 	// Bind an Action to an event, this is the same as the legacy input binding
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AAuraPlayerController::Move);
-	
 }
 
 void AAuraPlayerController::Move(const FInputActionValue& InputActionValue)
@@ -55,10 +62,38 @@ void AAuraPlayerController::Move(const FInputActionValue& InputActionValue)
 	const FVector Right = FRotationMatrix(Rotation).GetUnitAxis(EAxis::Y);
 
 	// If there is a pawn, add the movement input to the pawn
-	if(APawn* controlledPawn = GetPawn<APawn>())
+	if (APawn* controlledPawn = GetPawn<APawn>())
 	{
 		// In this Aura case, the pawn will be a Character with a CharacterMovementComponent
 		controlledPawn->AddMovementInput(Forward, InputAxisVector.Y);
 		controlledPawn->AddMovementInput(Right, InputAxisVector.X);
+	}
+}
+
+void AAuraPlayerController::CursorTrace()
+{
+	FHitResult CursorHit;
+	GetHitResultUnderCursor(ECC_Visibility, false, CursorHit);
+
+	if (!CursorHit.bBlockingHit) return;
+
+	LastHoveredActor = CurrentHoveredActor;
+	CurrentHoveredActor = Cast<IEnemyInterface>(CursorHit.GetActor());
+
+	if (LastHoveredActor != nullptr && CurrentHoveredActor == nullptr)
+	{
+		LastHoveredActor->UnHighlightActor();
+	}
+	else if (LastHoveredActor == nullptr && CurrentHoveredActor != nullptr)
+	{
+		CurrentHoveredActor->HighLightActor();
+	}
+	else if (LastHoveredActor != nullptr && CurrentHoveredActor != nullptr)
+	{
+		if (LastHoveredActor != CurrentHoveredActor)
+		{
+			LastHoveredActor->UnHighlightActor();
+			CurrentHoveredActor->HighLightActor();
+		}
 	}
 }

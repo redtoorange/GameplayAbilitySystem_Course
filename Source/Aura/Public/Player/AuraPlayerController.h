@@ -8,6 +8,7 @@
 
 struct FInputActionValue;
 class UInputAction;
+class IEnemyInterface;
 /**
  * 
  */
@@ -34,6 +35,14 @@ private:
 	
 	void Move(const FInputActionValue& InputActionValue);
 
+	void CursorTrace();
+
+	IEnemyInterface* LastHoveredActor;
+	IEnemyInterface* CurrentHoveredActor;
+	
 protected:
 	virtual void SetupInputComponent() override;
+
+public:
+	virtual void PlayerTick(float DeltaTime) override;
 };
